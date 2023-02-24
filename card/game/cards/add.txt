@@ -1,0 +1,8 @@
+>> card.py class Deck()
+
+# draw in deck
+    def get_card(self, cards: Iterable[Card]):
+        return self.append(cards.pop())
+
+    def open_card(self, cards: Iterable[Card], num: int):
+        return self.append(cards.pop(num))

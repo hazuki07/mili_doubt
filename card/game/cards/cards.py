@@ -59,7 +59,6 @@ class Suit(Enum):
             return int(self) >= int(other)
         raise NotImplemented
 
-
 class NumberProperty(NamedTuple):
     str: str
     value: int
@@ -103,6 +102,7 @@ class Number(Enum):
     def is_ace(self):
         return self is self.__class__._A
 
+# sort実装の余地
     def __gt__(self, other):
         """Override it at a sub-class if needed"""
         if isinstance(other, self.__class__):
@@ -259,41 +259,72 @@ class Deck(list):
     def draw(self):
         return self.pop()
 
+    # draw in deck
+    def get_card(self, cards: Iterable[Card]):
+        return self.append(cards.pop())
 
-if __name__ == '__main__':
-    class DaifugoCard(Card):
-        @property
-        def _strength(self):
-            if self.is_joker:
-                return 13
-            return (int(self.number) - 3) % 13
+    def open_card(self, cards: Iterable[Card], num: int):
+        return self.append(cards.pop(num))
+    
+"""
+# ソート実装の余地
+class Hand(Deck):
+    def __init__(self, cls_card: Type[Card] = Card):
+        super().__init__()
+        self.__cls_card = cls_card
 
-        def __gt__(self, other):
-            if isinstance(other, self.__class__):
-                return self._strength > other._strength
-            raise NotImplemented
+    def __str__(self):
+        return "[" + ", ".join(str(x) for x in self) + "]"
 
-        def __ge__(self, other):
-            if isinstance(other, self.__class__):
-                return self._strength >= other._strength
-            raise NotImplemented
+    def __repr__(self):
+        def __str__(self):
+            return "[" + ", ".join(repr(x) for x in self) + "]"
+"""
 
-        def __lt__(self, other):
-            if isinstance(other, self.__class__):
-                return self._strength < other._strength
-            raise NotImplemented
+"""
+#if __name__ == '__main__':
+class DaifugoCard(Card):
+    @property
+    def _strength(self):
+        if self.is_joker:
+            return 13
+        return (int(self.number) - 3) % 13
 
-        def __le__(self, other):
-            if isinstance(other, self.__class__):
-                return self._strength <= other._strength
-            raise NotImplemented
+    def __gt__(self, other):
+        if isinstance(other, self.__class__):
+            return self._strength > other._strength
+        raise NotImplemented
+
+    def __ge__(self, other):
+        if isinstance(other, self.__class__):
+            return self._strength >= other._strength
+        raise NotImplemented
+
+    def __lt__(self, other):
+        if isinstance(other, self.__class__):
+            return self._strength < other._strength
+        raise NotImplemented
+
+    def __le__(self, other):
+        if isinstance(other, self.__class__):
+            return self._strength <= other._strength
+        raise NotImplemented
+
+deck = Deck(DaifugoCard)
+deck.full()
+print(deck)
+deck.shuffle()
+print(deck)
+#deck.sort(key=lambda x: (x.Number.value, x.Suit.value))
+
+deck.sort(key=lambda x: (x.number, x.suit))
+for card in deck:
+    print(card.number, card.suit)
+print(deck)
 
 
-    deck = Deck(DaifugoCard)
-    deck.full()
-    print(deck)
-    deck.shuffle()
-    print(deck)
-    card0 = deck.draw()
-    card1 = deck.draw()
-    print(card0, card1, card0 > card1)
+card0 = deck.draw()
+card1 = deck.draw()
+print(card0, card1, card0 > card1)
+
+"""

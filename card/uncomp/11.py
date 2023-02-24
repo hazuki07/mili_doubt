@@ -27,3 +27,5 @@ class FishPlayer(BasePokerPlayer):  # Do not forget to make parent class as "Bas
 
 def setup_ai():
     return FishPlayer()
+
+    def hoge():
