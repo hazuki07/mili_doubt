@@ -267,7 +267,7 @@ class Deck(list):
         return self.append(cards.pop(num))
     
 """
-# ソート実装の余地
+# //NOTE ソート実装の余地
 class Hand(Deck):
     def __init__(self, cls_card: Type[Card] = Card):
         super().__init__()
