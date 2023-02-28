@@ -37,26 +37,28 @@ class Daifugo(cards.Card):
             return self._strength >= other._strength
         raise NotImplemented
 
-deck = cards.Deck(Daifugo)
-deck.full()
-print(deck)
-#[sA~,dA~,cA~,hA~,jo,jo]
-deck.shuffle()
-#print(deck)
-#print(card0, card1, card0 < card1)
-print(deck)
 
-hand0 = cards.Deck(Daifugo)
-hand1 = cards.Deck(Daifugo)
-#field = cards.Deck()
+if '__name__' == '__main__':
+    deck = cards.Deck(Daifugo)
+    deck.full()
+    print(deck)
+    #[sA~,dA~,cA~,hA~,jo,jo]
+    deck.shuffle()
+    #print(deck)
+    #print(card0, card1, card0 < card1)
+    print(deck)
 
-# separate cards
-for i in range(7):
-    hand0.get_card(deck)
-    hand1.get_card(deck)
-    # seiretsu
+    hand0 = cards.Deck(Daifugo)
+    hand1 = cards.Deck(Daifugo)
+    #field = cards.Deck()
 
-#debug_hand
-print(hand0)
-print(hand1)
-#print(len(deck))
+    # separate cards
+    for i in range(7):
+        hand0.get_card(deck)
+        hand1.get_card(deck)
+        # seiretsu
+
+    #debug_hand
+    print(hand0)
+    print(hand1)
+    #print(len(deck))

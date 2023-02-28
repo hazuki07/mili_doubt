@@ -16,15 +16,37 @@ class Field(Deck):
 class Player(self):
     is_atk: bool
     is_turn: bool
-    self.hands = card.Daifugo()
-    # self.field =
+    
+    def __init__():
+        self.hands = card.Deck(daifugo.Daifugo)
+        # self.field =
+
+    def bool_t(self):
+        self.is_atk = True
+
+    def bool_f(self):
+        self.is_atk = False
+
+    def dec_atk(self, atk : bool):
+        if atk == True:
+            self.is_atk = True
+        else:
+            self.is_atk = False
+
+    def dec_atk(self, turn : bool):
+        if turn == True:
+            self.is_turn = True
+        else:
+            self.is_turn = False
+
+    def prt_card(self):
+        print("H:" if self.is_atk == True else "V:", end="")
+        print(self.hands)
 
     # //TODO 毎ターン表示
-    """
-    print("H:" if is_atk=Ture else "V:", end="")
-    print(self.hands)
-    """
     def prt_card();
+        print("H_hand:" if is_atk=True else "V_hand:", end="")
+        print(self.hands)
 
     def sel_card(self):
     # //TODO 
@@ -68,7 +90,7 @@ class Dealer(Player):
 
     # //NOTE mada jissou suruka wakaran
     def get_card(self, cards: Iterable[Card]):
-    return self.append(cards.pop())
+        return self.append(cards.pop())
 
     
 """
