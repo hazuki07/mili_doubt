@@ -38,7 +38,7 @@ class Daifugo(cards.Card):
         raise NotImplemented
 
 
-if '__name__' == '__main__':
+if __name__ == '__main__':
     deck = cards.Deck(Daifugo)
     deck.full()
     print(deck)
