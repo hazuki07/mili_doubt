@@ -80,27 +80,31 @@ class Player():
             self.field.open_card(self.hands, i)
         print(self.field)
 
-
-"""
 # //TODO ディーラーでクラスで手配をプリントするか
 class Dealer(Player):
     is_turn: bool
+    # atk: int
 
     def __init__(self):
         super().__init__()
-        self.deck = 
-        self.atk = 
-        self.turn = 
+        self.deck = bool
+        self.atk = bool
+        self.turn = bool
 
     # hero's atk if x=0 else villan's atk
-    def dec_atk(x):
-    x = random.randint(0, 1)
-    return x 
+    def dec_atk(self):
+        atk = random.randint(0, 1)
+        if atk == 0:
+            print("your atk turn.")
+            self.atk = True
+        else:
+            print("Villan's atk.")
+            self.atk = False
 
-    # //NOTE mada jissou suruka wakaran
-    def get_card(self, cards: Iterable[Card]):
-        return self.append(cards.pop())
-"""
+    #   NOTE mada jissou suruka wakaran
+    # def get_card(self, cards: Iterable[Card]):
+    #     return self.append(cards.pop())
+
 a = Player()
 a.bool_f()
 a.is_atk = True
@@ -123,3 +127,6 @@ for i in range(7):
 print(x)
 a.prt_card()
 b.prt_card()
+
+a.sel_card()
+a.opn_card()

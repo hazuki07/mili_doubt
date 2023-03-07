@@ -21,8 +21,8 @@ class Test():
     def bool_f(self):
         self.is_atk = False
 
-    def dec_atk(self, a:bool):
-        if a == True:
+    def dec_atk(self, atk:bool):
+        if atk == True:
             self.is_atk = True
         else:
             self.is_atk = False

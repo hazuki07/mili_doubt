@@ -134,19 +134,19 @@ class JokerProperty(NamedTuple):
 
 
 class Joker(Enum):
-    B = JokerProperty(str="JokerB", is_black=True)
-    R = JokerProperty(str="JokerR", is_black=False)
+    B = JokerProperty(str="Joker", is_black=True)
+    R = JokerProperty(str="Joker", is_black=False)
 
     def __str__(self):
         return self.value.str
 
-    @property
-    def is_black(self):
-        return self.value.is_black
+    # @property
+    # def is_black(self):
+    #     return self.value.is_black
 
-    @property
-    def is_red(self):
-        return not self.value.is_black
+    # @property
+    # def is_red(self):
+    #     return not self.value.is_black
 
 
 # ***********************************************************
@@ -199,19 +199,19 @@ class Card:
         return self.joker is not None
 
     # --- properties coming from Suit (and Joker) ---
-    @property
-    def is_black(self):
-        if self.is_joker:
-            return self.joker.is_black
-        else:
-            return self.suit.is_black
+    # @property
+    # def is_black(self):
+    #     if self.is_joker:
+    #         return self.joker.is_black
+    #     else:
+    #         return self.suit.is_black
 
-    @property
-    def is_red(self):
-        if self.is_joker:
-            return self.joker.is_red
-        else:
-            return self.suit.is_red
+    # @property
+    # def is_red(self):
+    #     if self.is_joker:
+    #         return self.joker.is_red
+    #     else:
+    #         return self.suit.is_red
 
     # --- properties coming from Number ---
     @property

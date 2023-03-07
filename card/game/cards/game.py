@@ -13,7 +13,7 @@ class Game:
         # role.py
         self.player0 = role.Player()
         self.player1 = role.Player()
-        self.dealer = role.Dealer()
+        # self.dealer = role.Dealer()
 
     def judge_win(self, player0, player1):
 
