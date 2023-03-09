@@ -4,7 +4,7 @@ from re import A, X
 import random
 from tkinter import N
 import cards
-import daifugo
+import milliondoubt
 
 from collections import namedtuple
 
@@ -19,8 +19,8 @@ class Player():
     is_dbt: bool
 
     def __init__(self):
-        self.field = cards.Deck(daifugo.Daifugo)
-        self.hands = cards.Deck(daifugo.Daifugo)
+        self.field = cards.Deck(milliondoubt.Milliondoubt)
+        self.hands = cards.Deck(milliondoubt.Milliondoubt)
         self.sel_opn = 0
         self.sel_dbt = 0
 
@@ -61,11 +61,13 @@ class Player():
             self.field.open_card(self.hands, i)
         print(self.field)
 
-    def dec_dbt(self, dbt : bool):
-        if dbt == True:
-            self.is_dbt = True
-        else:
-            self.is_dbt = False
+    def dec_dbt(self):
+        while True:
+            choice = input("Please doubt's respond with 'doubt' or 'not' [d/N]: ").lower()
+            if choice in ['d', 'do', 'dou', 'doub', 'doubt']:
+                self.is_dbt = True
+            elif choice in ['n', 'no', 'not']:
+                self.is_dbt = False
 
     def sel_dbtcard(self):
         print('空白区切りでリスト番号を選択してください。')
@@ -83,13 +85,16 @@ class Player():
 # //TODO ディーラーでクラスで手配をプリントするか
 class Dealer(Player):
     is_turn: bool
-    # atk: int
+    is_dbt: bool
+    deck = []
 
     def __init__(self):
         super().__init__()
         self.deck = bool
         self.atk = bool
         self.turn = bool
+        self.deck = cards.Deck(milliondoubt.Milliondoubt)
+        self.deck.full()
 
     # hero's atk if x=0 else villan's atk
     def dec_atk(self):
@@ -105,28 +110,31 @@ class Dealer(Player):
     # def get_card(self, cards: Iterable[Card]):
     #     return self.append(cards.pop())
 
-a = Player()
-a.bool_f()
-a.is_atk = True
-a.is_turn = True
-a.prt_card()
+a = Dealer()
+a.dec_atk()
 
-print("test")
-b = Player()
-b.dec_atk(False)
-b.dec_turn(False)
-b.prt_card()
-# a.full()
-# print(a)
-x = cards.Deck(daifugo.Daifugo)
-x.full()
-x.shuffle()
-for i in range(7):
-    a.hands.get_card(x)
-    b.hands.get_card(x)
-print(x)
-a.prt_card()
-b.prt_card()
+# a = Player()
+# a.bool_f()
+# a.is_atk = True
+# a.is_turn = True
+# a.prt_card()
 
-a.sel_card()
-a.opn_card()
+# print("test")
+# b = Player()
+# b.dec_atk(False)
+# b.dec_turn(False)
+# b.prt_card()
+# # a.full()
+# # print(a)
+# x = cards.Deck(daifugo.Daifugo)
+# x.full()
+# x.shuffle()
+# for i in range(7):
+#     a.hands.get_card(x)
+#     b.hands.get_card(x)
+# print(x)
+# a.prt_card()
+# b.prt_card()
+
+# a.sel_card()
+# a.opn_card()

@@ -3,7 +3,7 @@ from operator import is_
 from re import A, X
 import random
 import cards
-import daifugo
+import milliondoubt
 import role
 import game
 
