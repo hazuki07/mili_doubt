@@ -200,15 +200,15 @@ class Card:
         if isinstance(other, self.__class__):
             return (self.suit, self.number, self.joker) == (other.suit, other.number, other.joker)
         raise NotImplemented
-    
+
     def flip(self):
         self.__face_up = not self.__face_up
-    
+
     # --- properties coming from Joker ---
     @property
     def is_joker(self):
         return self.joker is not None
-    
+
     @property
     def face_up(self):
         return self.__face_up
@@ -271,6 +271,9 @@ class Deck(list):
     def shuffle(self):
         random.shuffle(self)
 
+    def sort(self):
+        self.__cls_card.sort()
+
     def draw(self):
         return self.pop()
 
@@ -280,13 +283,6 @@ class Deck(list):
 
     def open_card(self, cards: Iterable[Card], num: int):
         return self.append(cards.pop(num))
-    
-    # def Card_reverse():
-    #     # Class Card's __repr__ Switches temporarily.
-    #     with repr_temporarily(Card, lambda self: f"b"):
-    #          obj = MyClass(42)
-    #     print(repr(obj))  # MyClass with val=42
-
 
 """
 # //NOTE ソート実装の余地
@@ -325,17 +321,7 @@ if __name__ == '__main__':
     deck[0].flip()
     print(deck)
     deck.shuffle()
+    deck.sort()
     print(deck)
     deck[0].flip()
     print(deck)
-
-    """.is_face_up is not enable.
-    deck = Deck(Card)
-    deck.full()
-    deck[0].is_face_up = False
-    deck[1].is_face_up = True
-    deck[0].__face_up = False
-    deck[1].__face_up = True
-    # deck[2].flip()
-    print(deck)"""
-
