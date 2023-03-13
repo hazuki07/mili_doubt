@@ -33,17 +33,17 @@ class Player():
     def bool_f(self):
         self.is_atk = False
 
-    # def dec_atk(self, atk : bool):
-    #     if atk == True:
-    #         self.is_atk = True
-    #     else:
-    #         self.is_atk = False
+    def dec_atk(self, atk : bool):
+        if atk == True:
+            self.is_atk = True
+        else:
+            self.is_atk = False
 
-    # def dec_turn(self, turn : bool):
-    #     if turn == True:
-    #         self.is_turn = True
-    #     else:
-    #         self.is_turn = False
+    def dec_turn(self, turn : bool):
+        if turn == True:
+            self.is_turn = True
+        else:
+            self.is_turn = False
 
     # //TODO 毎ターン表示
     def prt_card(self):

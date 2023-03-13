@@ -1,4 +1,5 @@
 from enum import Enum
+from importlib.util import set_loader
 from multiprocessing.util import is_abstract_socket_namespace
 from operator import truediv
 import random
@@ -271,8 +272,15 @@ class Deck(list):
     def shuffle(self):
         random.shuffle(self)
 
-    def sort(self):
-        self.__cls_card.sort()
+    # def bb_sort(self):
+    #     chg = True
+    #     while chg:
+    #         chg = False
+    #         for i in range(len.self - 1):
+    #             if self[i] > self[i+1]:
+    #                 self[i], self[i+1] = self[i+1], self[i]
+    #                 chg = True
+    #     return self
 
     def draw(self):
         return self.pop()
