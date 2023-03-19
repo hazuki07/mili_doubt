@@ -247,6 +247,8 @@ class Card:
 #  Deck class
 # ***********************************************************
 class Deck(list):
+    revolution_flag = False
+
     def __init__(self, cls_card: Type[Card] = Card):
         super().__init__()
         self.__cls_card = cls_card
@@ -257,6 +259,10 @@ class Deck(list):
     def __repr__(self):
         def __str__(self):
             return "[" + ", ".join(repr(x) for x in self) + "]"
+
+    def toggle_revolution(self):
+        self.__class__.revolution_flag = not self.__class__.revolution_flag
+        self.__cls_card.tgl_revolution()
 
     def full(self):
         super().__init__(
@@ -272,16 +278,6 @@ class Deck(list):
     def shuffle(self):
         random.shuffle(self)
 
-    # def bb_sort(self):
-    #     chg = True
-    #     while chg:
-    #         chg = False
-    #         for i in range(len.self - 1):
-    #             if self[i] > self[i+1]:
-    #                 self[i], self[i+1] = self[i+1], self[i]
-    #                 chg = True
-    #     return self
-
     def draw(self):
         return self.pop()
 
@@ -289,12 +285,13 @@ class Deck(list):
     def get_card(self, cards: Iterable[Card]):
         return self.append(cards.pop())
 
+    # raise card
     def open_card(self, cards: Iterable[Card], num: int):
         return self.append(cards.pop(num))
+    
+    # def reverse(self):
+    #     self.reverse_flag = not self.reverse_flag  
 
-"""
-# //NOTE ソート実装の余地
-"""
 
 if __name__ == '__main__':
     class DaifugoCard(Card):
