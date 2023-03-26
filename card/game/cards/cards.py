@@ -111,25 +111,25 @@ class Number(Enum):
         """Override it at a sub-class if needed"""
         if isinstance(other, self.__class__):
             return int(self) > int(other)
-        raise NotImplemented
+        raise NotImplementedError
 
     def __ge__(self, other):
         """Override it at a sub-class if needed"""
         if isinstance(other, self.__class__):
             return int(self) >= int(other)
-        raise NotImplemented
+        raise NotImplementedError
 
     def __lt__(self, other):
         """Override it at a sub-class if needed"""
         if isinstance(other, self.__class__):
             return int(self) < int(other)
-        raise NotImplemented
+        raise NotImplementedError
 
     def __le__(self, other):
         """Override it at a sub-class if needed"""
         if isinstance(other, self.__class__):
             return int(self) <= int(other)
-        raise NotImplemented
+        raise NotImplementedError
 
 
 class JokerProperty(NamedTuple):
