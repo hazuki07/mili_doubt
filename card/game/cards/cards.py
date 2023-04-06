@@ -178,7 +178,7 @@ class Card:
         return self.__suit
 
     @property
-    def number(self):
+    def number(self) -> Optional[Number]:
         return self.__number
 
     @property
@@ -204,6 +204,9 @@ class Card:
 
     def flip(self):
         self.__face_up = not self.__face_up
+
+    def _face_up(self):
+        self.__face_up = True
 
     # --- properties coming from Joker ---
     @property
@@ -322,11 +325,19 @@ if __name__ == '__main__':
             raise NotImplemented
 
     deck = Deck(DaifugoCard)
+    a = Deck(DaifugoCard)
+    b = Deck(DaifugoCard)
     deck.full()
     deck[0].flip()
-    print(deck)
+    
+    for i in reversed(range(7)):
+        a.get_card(deck)
+        b.open_card(deck, i)
+    print(a)
+    print(a[0].number)
+    print(a)
     deck.shuffle()
     deck.sort()
-    print(deck)
+    # print(deck)
     deck[0].flip()
-    print(deck)
+    # print(deck)
