@@ -1,3 +1,4 @@
+from operator import index
 import random
 from turtle import Turtle
 import cards
@@ -9,12 +10,15 @@ import copy
 from collections import namedtuple
 
 class Game():
-    my_phase = ["play", "dec_doubt", "sel_card", "dec_burst", "none"]
+    my_phase = ["play", "dec_doubt", "sel_dbtcard", "dec_burst", "None"]
     
     def __init__(self):
         # role.py
         self.player0 = role.Player()
-        self.player1 = role.CPUPlayer()
+        self.player1 = role.Player()
+        self.is_cards_played = False
+        self.is_should_doubt = False
+        self.is_turn_end = False
         self.round_start = True
         self.round = 1
         self.phase = 1
@@ -40,7 +44,7 @@ class Game():
         self.restricted_suits = []
         self.skip = False
         self.winner = None
-        self.my_phase = "none"
+        self.my_phase = "None"
         
     def deal_cards(self):
         self.deck.shuffle()
@@ -55,6 +59,7 @@ class Game():
 
     def decide_attacker(self):
         atk = random.randint(0, 1)
+        self.my_phase = "play"
         if atk == 0:
             print("your atk turn.")
             self.turn = True
@@ -120,13 +125,13 @@ class Game():
                     print(f"{suit}縛り")
                     self.restricted_suits.append(suit)
 
-    def play_cards(self, player):
+    def play_cards(self, player, index1=None, index2=None):
         if player.type == "Player":
             return self.play_cards_player(player)
         elif player.type == "CPU":
             return self.play_cards_CPU(player)
         elif player.type == "ML":
-            return self.play_cards_ML(player)
+            return self.play_cards_ML(player, index1, index2)
 
     def play_cards_player(self, player):
         selected_indexes = player.sel_card()
@@ -158,6 +163,7 @@ class Game():
             print("パス")
             self.topcard = []
             self.skip = True
+            self.is_turn_end = True
             self.field_clear()
             logging.info(f'{"Hero" if self.turn else "Villain"} passed.')
             return False
@@ -188,12 +194,45 @@ class Game():
             print("パス")
             self.topcard = []
             self.skip = True
+            self.is_turn_end = True
             self.field_clear()
             logging.info(f'{"Hero" if self.turn else "Villain"} passed.')
             return False
 
-    def play_cards_ML(self, player):
-        pass
+# TODO
+    def play_cards_ML(self, player, index1, index2):
+        # フィールドにカードがない場合 selected_indexesを空のリストにできない
+        if not self.field and not index1:
+            print("自分のラウンドの初手はパスできません")
+            return None
+        
+        if index1:
+            self.my_phase = "play"
+            player.opn_card()
+            player.sel_card_back(index2)
+            if self.is_validation(player.field, True):
+                self.get_topcard(player.field)
+                self.topcard_number = self.get_topcard_number(player.field, True)
+                self.topcard_length = len(player.field)
+                self.is_bluff = self.is_bluff_cards(player.field, self.field)
+                for i in range(len(player.field)):
+                    self.field.get_card(player.field)
+                logging.info(f'{"Hero" if self.turn else "Villain"} played cards: {player.field}')
+                return True
+            
+            print("その手は出せません")
+            player.return_cards()
+            print(f"Field: {self.field}")
+            print(player.hands)
+            return None
+        else:
+            print("パス")
+            self.topcard = []
+            self.skip = True
+            self.is_turn_end = True
+            self.field_clear()
+            logging.info(f'{"Hero" if self.turn else "Villain"} passed.')
+            return False
 
 
     def get_topcard_number(self, player_field: cards.Deck, visible_only: bool = False) -> int:
@@ -384,19 +423,24 @@ class Game():
             self.is_eleven_back = False
             self.is_revolution = not self.is_revolution
 
-    
-    def should_doubt(self, player):
+# TODO update
+    def should_doubt(self, player, bool=None):
         self.my_phase = "dec_doubt"
-        player.dec_dbt()
+        if not player.name == "MLPlayer":
+            player.dec_dbt()
+        elif not bool:
+            player.dec_dbt(bool)
+        else:
+            print("NotImplemented_MLPlayer")
         return player.is_dbt
     
-    def handle_bluff_caught(self, bluffer, doubter):
+    def handle_bluff_caught(self, bluffer, doubter, action=None):
         # ブラフがバレたため、フィールドのカードをブラフを行ったプレイヤーの手札に加える
         logging.info(f'{bluffer} was caught bluffing by {doubter}. Penalty applied.')
         print("ダウト成功")
         # print(self.field)
         # NOTE キャンセル処理
-        doubter.sel_dbtcard(self.field)
+        doubter.sel_dbtcard(self.field, action)
         doubter.opn_dbtcard(self.field)
 
         for i in range(len(doubter.field)):
@@ -405,12 +449,12 @@ class Game():
         # ブラフがバレたプレイヤーにペナルティを与える（必要であれば）
         # 例: bluffer.penalty += 1
 
-    def handle_false_doubt(self, player, doubter):
+    def handle_false_doubt(self, player, doubter, action):
         # ダウトが失敗したため、フィールドのカードをダウトを行ったプレイヤーの手札に加える
         logging.info(f'{doubter} falsely doubted {player}. Penalty applied.')
         print("ダウト失敗")
         self.my_phase = "sel_card"
-        player.sel_dbtcard(self.field)
+        player.sel_dbtcard(self.field, action)
         player.opn_dbtcard(self.field)
 
         for i in range(len(player.field)):
@@ -421,26 +465,46 @@ class Game():
         # 例: doubter.penalty += 1
 
     def handle_no_doubt(self):
-        pass
+        self.is_turn_end = True
 
     def check_burst(self):
+        if len(self.player0.hands) >= 11 or len(self.player1.hands) >= 11:
+            return True
+        self.is_turn_end = True
+        return False
+    
+    def call_burst(self, bool=None):
         # プレイヤーの手札が11枚以上になった場合、バーストとみなす
         if len(self.player0.hands) >= 11:
             self.my_phase = "dec_burst"
-            self.player1.dec_burst()
+            
+            if not self.player1.name == "MLPlayer":
+                self.player1.dec_burst()
+            elif not bool:
+                self.player1.dec_burst(bool)
+            else:
+                print("NotImplemented_MLPlayer")
+
             if self.player1.play_burst:
                 self.winner = self.player0
                 return self.winner
         elif len(self.player1.hands) >= 11:
             self.my_phase = "dec_burst"
-            self.player0.dec_burst()
+            
+            if not self.player1.name == "MLPlayer":
+                self.player0.dec_burst()
+            elif not bool:
+                self.player0.dec_burst(bool)
+            else:
+                print("NotImplemented_MLPlayer")
+            
             if self.player0.play_burst:
                 self.winner = self.player1
                 return self.winner
-        return False
 
     def handle_burst(self):
         if self.winner:
+            print("Burst!")
             # toggle on/off
             self.show_winner(self.winner)
             # logging.info(f'{winner} burst with {loser_hands_size} cards in hand.')
@@ -482,105 +546,78 @@ class Game():
         print(f"相手札： {len(self.player1.hands)}枚")
         print("My hand:", end=" ")
         self.player0.prt_card()
-
-    def start_game(self):
-        self.deal_cards()
-        self.decide_attacker()
-        while self.play:
-            self.gameLoop()
-
-    def gameLoop(self):
-        self.print_game()
-
-        # カードを出す
-        if self.turn:
-            cards_played = self.play_cards(self.player0)
-        else:
-            cards_played = self.play_cards(self.player1)
-
+        
+    def print_game_field(self):
         print(f"tp: {self.topcard_suits}")
         print(f"相手札： {len(self.player1.hands)}枚")
         # print(f"length: {self.topcard_length}")
-        print(f"Play: {self.topcard}")
-        print(" ")
+        print(f"Play: {self.topcard}\n")
+
         
-        if not self.skip and not (self.round_start and len(self.topcard) == 1) and not all(card.face_up for card in self.topcard) and not self.topcard == []:
+    def phase_play(self, action1=None, action2=None):
+        # カードを出す
+        if self.turn:
+            self.is_cards_played = self.play_cards(self.player0, action1, action2)
+        else:
+            self.is_cards_played = self.play_cards(self.player1, action1, action2)
+        self.my_phase = "dec_doubt"
+            
+
+    def phase_dec_doubt(self, action=None):
         # ダウトするかどうか判断
-            if self.turn:
-                print(f"{self.player1}の操作")
-                should_doubt = self.should_doubt(self.player1)
-            else:
-                # print(f"Field: {self.field}")
-                # self.debug_func()
-                print(f"{self.player0}の操作")
-                should_doubt = self.should_doubt(self.player0)
-            # ダウト判断、ダウト実行処理
-            if should_doubt:
-                print("ダウト")
-                print(" ")
-                # print("self.field")
-                if not self.is_bluff:
-                    # !s 嘘がばれた場合
-                    if self.turn:
-                        # add kif "!s"
-                        # handle_bluff_caught(self, bluffer, doubter)
-                        self.handle_bluff_caught(self.player0, self.player1)
-                        self.field_clear()
-                    else:
-                        # add kif "!s"
-                        print(f"相手札： {len(self.player1.hands)}枚")
-                        self.handle_bluff_caught(self.player1, self.player0)
-                        self.field_clear()
-                    # bst バースト判定
-                    if self.check_burst():
-                        print("Burst!")
-                        if self.turn:
-                            self.handle_burst()
-                        else:
-                            self.handle_burst()
-                        return self.play
-                else:
-                    # !m 嘘じゃなかった場合
-                    if self.turn:
-                        # add kif "!m"
-                        # handle_false_doubt(self, player, doubter)
-                        self.handle_false_doubt(self.player1, self.player0)
-                        self.field_clear()
-                        self.phase -= 1
-                        self.switch_turn()
-                    else:
-                        # add kif "!m"
-                        print(f"相手札： {len(self.player1.hands)}枚")
-                        self.handle_false_doubt(self.player0, self.player1)
-                        self.field_clear()
-                        self.phase -= 1
-                        self.switch_turn()
-                    # バースト判定
-                    if self.check_burst():
-                        print("Burst!")
-                        if self.turn:
-                            # バーストハンドリング
-                            self.handle_burst()
-                        else:
-                            # バーストハンドリング
-                            self.handle_burst()
-                        return self.play
-            else:
-                # ダウトしない場合
-                print("スルー")
-                print(" ")
-                self.handle_no_doubt() # pass
+        if self.turn:
+            print(f"{self.player1}の操作")
+            self.is_should_doubt = self.should_doubt(self.player1, action)
+        else:
+            # print(f"Field: {self.field}")
+            # self.debug_func()
+            print(f"{self.player0}の操作")
+            self.is_should_doubt = self.should_doubt(self.player0, action)
         
+        if self.is_cards_played == None:
+            return False
+        
+        self.my_phase = "sel_dbtcard"
+            
+    def phase_sel_dbtcard(self, action=None):
+        if not self.is_bluff:
+            # !s 嘘がばれた場合
+            # add kif "!s"
+            if self.turn:
+                # handle_bluff_caught(self, bluffer, doubter)
+                self.handle_bluff_caught(self.player0, self.player1, action)
+            else:
+                print(f"相手札： {len(self.player1.hands)}枚")
+                self.handle_bluff_caught(self.player1, self.player0, action)
+        else:
+            # !m 嘘じゃなかった場合
+            # add kif "!m"
+            if self.turn:
+                # handle_false_doubt(self, player, doubter)
+                self.handle_false_doubt(self.player1, self.player0, action)
+            else:
+                print(f"相手札： {len(self.player1.hands)}枚")
+                self.handle_false_doubt(self.player0, self.player1, action)
+            self.phase -= 1
+            self.switch_turn()
+        self.my_phase = "dec_burst"
+
+    def check_is_doubt(self):
+        if not self.skip and not (self.round_start and len(self.topcard) == 1) and not all(card.face_up for card in self.topcard) and not self.topcard == []:
+            return True
+        self.is_turn_end = True
+
+    def end_phase(self):
         self.round_start = False
         # パスの処理
-        if not cards_played:
+        if not self.is_cards_played:
             self.field_clear()
         # 勝利判定
         if self.check_win():
             print("Game Over")
             self.show_winner(self.check_win())
             return self.play
-        
+
         self.play_card_effect(self.topcard)
         # ターン交代
         self.phase += 1
@@ -591,9 +628,45 @@ class Game():
         self.before_suits.clear()
         self.before_suits = copy.deepcopy(self.topcard_suits)
         # print(self.topcard_number)
+        self.my_phase = "play"
+        self.is_turn_end = False
         print(" ")
 
 
+    def start_game(self):
+        self.deal_cards()
+        self.decide_attacker()
+        while self.play:
+            self.gameLoop()
+
+        
+    def gameLoop(self):
+        self.print_game()
+        
+        self.phase_play() # act
+        
+        if self.check_is_doubt():
+            self.phase_dec_doubt() # act
+            # ダウト判断、ダウト実行処理
+        if self.is_should_doubt:
+            print("ダウト\n")
+            # print("self.field")
+            self.phase_sel_dbtcard() #act
+            self.field_clear()
+        else:
+            # ダウトしない場合
+            print("スルー\n")
+            self.handle_no_doubt() # pass
+            self.is_turn_end = True
+            
+        # バースト判定
+        if self.check_burst():
+            self.call_burst() # act
+            self.handle_burst()
+            return self.play
+            
+        
+        self.end_phase()
 
 
 if __name__ == '__main__':
