@@ -12,6 +12,7 @@ class MillionDoubtEnv(gym.Env):
         # self.is_declaring_doubt = False
         # self.is_selecting = False
         # self.is_declaring_burst = False
+        self.decode_option = False
         self.game = game.Game()
         self.obs_dict = {
             'player_hand': [],
@@ -92,11 +93,11 @@ class MillionDoubtEnv(gym.Env):
 
     def get_action(self, obs):
         action = {
-            'play_card': [],
-            'play_card_back': [],
-            'doubt': None,
-            'select_card': [],
-            'burst': None,
+            'play_card': np.empty([0]),
+            'play_card_back': np.empty([0]),
+            'doubt': np.empty([0]),
+            'select_card': np.empty([0]),
+            'burst': np.empty([0]),
         }
         
         if obs['phase_type'] == 0:
@@ -106,7 +107,7 @@ class MillionDoubtEnv(gym.Env):
             # self.obs_dict['phase_type'] = 1
             action['play_card'] = self.action_space['play_card'].sample()
             action['play_card_back'] = self.action_space['play_card_back'].sample()
-            
+            self.decode_option = True
             return action
 
     # ダウト(sample())
@@ -134,41 +135,49 @@ class MillionDoubtEnv(gym.Env):
         done = False
         reward = 0
         info = {}
+        play_card = []
+        play_card_back = []
+        dbtcard = []
+        burst = []
 
     # TODO act =>
         # カードをプレイするフェーズの処理
-        if not action['play_card'] == [] and not action['play_card_back'] == []:
-            index1, index2 = self.play(action)
-        elif not action['doubt'] == None:
+        if action['play_card'].size > 0 and action['play_card_back'].size > 0:
+            play_card, play_card_back = self.play(action)
+        elif action['doubt']:
         # ダウトをするフェーズの処理
-            self.game.player0.dec_dbt(self.declare_doubt(action))
-        elif not action['select_card'] == []:
+            doubt = self.declare_doubt(action)
+        elif action['select_card'].size > 0:
         # ダウトカードを選択するフェーズの処理
-            self.game.player0.sel_dbtcard(self.select_dbtcard(action))
-        elif not action['burst'] == None:
+            dbtcard = self.select_dbtcard(action)
+        elif action['burst']:
         # バーストを宣言するフェーズの処理
-            self.game.player0.dec_burst(self.declare_burst(action))
+            burst = self.declare_burst(action)
         else:
             print("raiseNotImplmented")
 
         if self.game.my_phase == "play":
             if self.game.turn:
-                self.game.phase_play(action['play_card']) # act
+                # print(f"action1:{play_card}")
+                # print(f"action2:{play_card_back}")
+                self.game.phase_play(play_card, play_card_back) # act
             else:
                 self.game.phase_play()
             
         elif self.game.my_phase == "dec_doubt":
+            print(doubt)
             if self.game.check_is_doubt():
                 if self.game.turn:
                     self.game.phase_dec_doubt()
                 else:
-                    self.game.phase_dec_doubt(action['doubt']) # act
+                    self.game.phase_dec_doubt(doubt) # act
 
         elif self.game.my_phase == "select_dbtcard":
+            print(dbtcard)
             # ダウト判断、ダウト実行処理
             if self.game.is_should_doubt:
                 # print("ダウト\n")
-                self.game.phase_sel_dbtcard(action['select_card']) #act
+                self.game.phase_sel_dbtcard(dbtcard) #act
                 self.game.field_clear()
             else:
                 # ダウトしない場合
@@ -176,9 +185,10 @@ class MillionDoubtEnv(gym.Env):
                 self.game.handle_no_doubt()
             
         elif self.game.my_phase == "dec_burst":
+            print(burst)
             # バースト判定
             if self.game.check_burst():
-                self.game.call_burst(action['burst']) # act
+                self.game.call_burst(burst) # act
                 self.game.handle_burst()
             
         if self.game.is_turn_end:
@@ -319,8 +329,9 @@ class MillionDoubtEnv(gym.Env):
     def decode_index(self, bin1, bin2=None):
         index1 = [i for i, value in enumerate(bin1) if value == 1]
 
-        if bin2:
+        if self.decode_option:
             index2 = [i for i, value in enumerate(bin2) if value == 1]
+            self.decode_option = False
             return index1, index2
         else:
             return index1
@@ -377,8 +388,27 @@ class MillionDoubtEnv(gym.Env):
 
         return self.obs_dict
 
-env = MillionDoubtEnv()
+# env = MillionDoubtEnv()
 
-# print(env.observation_space)
-obs = env.reset()
-# print(obs)
+# # print(env.observation_space)
+# # print(obs)
+
+# log = []
+# log_episode_reward = []
+# obs = env.reset()
+
+# # MLPlayer vs human, CPUPlayer
+# while True:
+#     obs = env.update_obs()
+#     act = env.get_action(obs)
+#     next_obs, reward, done, info = env.step(act)
+    
+#     log.append((obs, act, next_obs, reward, done))
+#     log_episode_reward.append(reward)
+    
+#     if done:
+#         break
+    
+#     obs = next_obs
+    
+# episode_rewrd = sum(log_episode_reward)

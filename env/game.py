@@ -14,8 +14,8 @@ class Game():
     
     def __init__(self):
         # role.py
-        self.player0 = role.Player()
-        self.player1 = role.Player()
+        self.player0 = role.MLPlayer()
+        self.player1 = role.CPUPlayer()
         self.is_cards_played = False
         self.is_should_doubt = False
         self.is_turn_end = False
@@ -223,7 +223,7 @@ class Game():
             print("その手は出せません")
             player.return_cards()
             print(f"Field: {self.field}")
-            print(player.hands)
+            print(f"Hands: {player.hands}")
             return None
         else:
             print("パス")
@@ -560,7 +560,9 @@ class Game():
             self.is_cards_played = self.play_cards(self.player0, action1, action2)
         else:
             self.is_cards_played = self.play_cards(self.player1, action1, action2)
-        self.my_phase = "dec_doubt"
+        
+        if self.is_cards_played:
+            self.my_phase = "dec_doubt"
             
 
     def phase_dec_doubt(self, action=None):
@@ -574,7 +576,7 @@ class Game():
             print(f"{self.player0}の操作")
             self.is_should_doubt = self.should_doubt(self.player0, action)
         
-        if self.is_cards_played == None:
+        if self.is_should_doubt == None:
             return False
         
         self.my_phase = "sel_dbtcard"
@@ -589,6 +591,7 @@ class Game():
             else:
                 print(f"相手札： {len(self.player1.hands)}枚")
                 self.handle_bluff_caught(self.player1, self.player0, action)
+            
         else:
             # !m 嘘じゃなかった場合
             # add kif "!m"
@@ -598,6 +601,7 @@ class Game():
             else:
                 print(f"相手札： {len(self.player1.hands)}枚")
                 self.handle_false_doubt(self.player0, self.player1, action)
+            
             self.phase -= 1
             self.switch_turn()
         self.my_phase = "dec_burst"
