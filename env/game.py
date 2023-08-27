@@ -1,9 +1,9 @@
 from operator import index
 import random
 from turtle import Turtle
-import cards
-import rule
-import role
+from env import cards
+from env import rule
+from env import role
 import logging
 import copy
 
@@ -646,9 +646,9 @@ class Game():
         
     def gameLoop(self):
         self.print_game()
-        
+
         self.phase_play() # act
-        
+
         if self.check_is_doubt():
             self.phase_dec_doubt() # act
             # ダウト判断、ダウト実行処理
@@ -659,17 +659,18 @@ class Game():
             self.field_clear()
         else:
             # ダウトしない場合
-            print("スルー\n")
+            if self.check_is_doubt(): # ないと表だしのときもスルーがでる
+                print("スルー\n")
             self.handle_no_doubt() # pass
             self.is_turn_end = True
-            
+
         # バースト判定
         if self.check_burst():
             self.call_burst() # act
             self.handle_burst()
             return self.play
-            
-        
+
+
         self.end_phase()
 
 

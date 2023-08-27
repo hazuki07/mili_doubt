@@ -1,5 +1,5 @@
 import random
-import cards
+from env import cards
 
 from collections import namedtuple
 from typing import Iterable, NamedTuple, Optional, Type

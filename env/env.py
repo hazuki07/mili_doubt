@@ -1,7 +1,8 @@
 import gym
 import numpy as np
-from cards import Card, Deck
-import game
+# from cards import Card, Deck
+from env import cards
+from env import game
 import random
 
 # actionの設計
@@ -231,7 +232,7 @@ class MillionDoubtEnv(gym.Env):
             return True
         return False
 
-    def encode_card(self, card: Card, option: bool=True):
+    def encode_card(self, card, option: bool=True):
         if card.joker:
             number = 14
             suit = 0
@@ -251,7 +252,7 @@ class MillionDoubtEnv(gym.Env):
             return [number, suit]
 
 
-    def encode_cards(self, cards: Deck, max_cards_len, option: bool=True):
+    def encode_cards(self, cards, max_cards_len, option: bool=True):
         encoded_cards = [self.encode_card(card, option) for card in cards]
 
         # Noneを出力するカウンタ
@@ -329,6 +330,7 @@ class MillionDoubtEnv(gym.Env):
     def decode_index(self, bin1, bin2=None):
         index1 = [i for i, value in enumerate(bin1) if value == 1]
 
+# TODO 選択されたカードのうちからindex
         if self.decode_option:
             index2 = [i for i, value in enumerate(bin2) if value == 1]
             self.decode_option = False

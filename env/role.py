@@ -1,6 +1,6 @@
 import random
-import cards
-import rule
+from env import cards
+from env import rule
 import logging
 import copy
 
@@ -40,7 +40,7 @@ class Player():
         self.hands.sort()
         print(self.hands)
 
-    def sel_card(self):
+    def sel_card(self, action=None):
         while True:
             try:
                 print('空白区切りでリスト番号を選択してください。パスは未選択。')
@@ -62,7 +62,7 @@ class Player():
         self.field.sort()
         print(self.field)
 
-    def sel_card_back(self):
+    def sel_card_back(self, action=None):
         while True:
             try:
                 print('裏出し：空白区切りでリスト番号を選択してください。空行で確定。')
@@ -100,7 +100,7 @@ class Player():
                 self.is_dbt = False
                 return False
 
-    def sel_dbtcard(self, field: cards.Deck):
+    def sel_dbtcard(self, field: cards.Deck, action=None):
         for i in range(len(field))[::-1]:
             field[i]._face_up()
         print(f"Field: {field}")
@@ -157,7 +157,7 @@ class CPUPlayer(Player):
     def __str__(self):
         return f"CPUPlayer({self.name})"
 
-    def sel_card(self, card_count: int):
+    def sel_card(self, card_count: int, action=None):
         # self.sel_opn = list(range(1))
         
         # 前回のカード枚数に合わせてカードを選択
@@ -187,11 +187,11 @@ class CPUPlayer(Player):
             return []  # パス
 
 
-    def dec_dbt(self):
-        doubt_probability = 0.2  # ダウトする確率
+    def dec_dbt(self, action=None):
+        doubt_probability = 0.8  # ダウトする確率
         self.is_dbt = random.random() < doubt_probability
         
-    def sel_dbtcard(self, field: cards.Deck):
+    def sel_dbtcard(self, field: cards.Deck, action=None):
         input_list = []
         for i in reversed(range(len(field))):
             field[i]._face_up()
@@ -216,44 +216,40 @@ class MLPlayer(CPUPlayer):
         return f"MLPlayer({self.name})"
 
     def sel_card(self, index):
-        while True:
-            # flag ==> env
-            self.play = True
-            try:
-                print('プレイするカードを選んでください')
-                user_input = index # list[0, 1, 2 ,5]
-                if user_input == "":
-                    return []  # パスの場合
-                # 入力されたインデックスが手札の範囲内にあるか確認
-                if all(0 <= index < len(self.hands) for index in self.sel_opn):
-                    self.play = False
-                    return self.sel_opn
-                else:
-                    raise ValueError("選択されたインデックスが手札の範囲外です。")
-            except ValueError as e:
-                print(f"エラー: {e} 再度入力してください。")
+        # flag ==> env
+        # self.play = True
+
+        user_input = index # list[0, 1, 2 ,5]
+        if user_input == "":
+            return []  # パスの場合
+        # 入力されたインデックスが手札の範囲内にあるか確認
+        if all(0 <= index < len(self.hands) for index in self.sel_opn):
+            # self.play = False
+            return self.sel_opn
+        else:
+            # raise ValueError("選択されたインデックスが手札の範囲外です。")
+            print("index is out of range.")
+
     
     def sel_card_back(self, index):
-        while True:
-            # flag ==> env
-            self.reverse = True
-            try:
-                print('裏表示にするカードをえらんでください')
-                user_input = index # list[0, 1, 2 ,5]
-                if user_input == "":
-                    break
-                # 入力されたインデックスが手札の範囲内にあるか確認
-                if all(0 <= index < len(self.field) for index in user_input):
-                    for i in user_input[::1]:
-                        self.field[i].flip()
-                        self.field.sort()
-                    print(self.field)
-                    self.reverse = False
-                    return self.field
-                else:
-                    raise ValueError("選択されたインデックスが手札の範囲外です。")
-            except ValueError as e:
-                print(f"エラー: {e} 再度入力してください。")
+        # flag ==> env
+        # self.reverse = True
+        
+        user_input = index # list[0, 1, 2 ,5]
+        if user_input == []:
+            return []
+        # 入力されたインデックスが手札の範囲内にあるか確認
+        if all(0 <= index < len(self.field) for index in user_input):
+            for i in user_input[::1]:
+                self.field[i].flip()
+                self.field.sort()
+            print(f"play_cards:{self.field}")
+            # self.reverse = False
+            return self.field
+        else:
+            # raise ValueError("選択されたインデックスが手札の範囲外です。")
+            print("index is out of range.")
+
 
     def dec_dbt(self, bool):
         self.is_dbt = bool
@@ -265,23 +261,21 @@ class MLPlayer(CPUPlayer):
         while True:
             # flag ==> env
             self.sel_card = True
-            try:
-                print('空白区切りでリスト番号を選択してください。スルーは未選択。')
-                user_input = index # list[0, 1, 2, 5]
-                if user_input == "":
-                    return []
-                # 入力されたインデックスが手札の範囲内にあるか確認し、すべてのインデックスが一意であることを確認
-                if all(0 <= index < len(field) for index in user_input) and len(user_input) == len(set(user_input)):
-                    print(user_input)
-                    user_input.sort()
-                    # print(field)
-                    self.sel_opn = user_input
-                    self.sel_card = False
-                    return self.sel_opn
-                else:
-                    raise ValueError("選択されたインデックスが手札の範囲外です。")
-            except ValueError as e:
-                print(f"エラー: {e} 再度入力してください。")
+
+
+            user_input = index # list[0, 1, 2, 5]
+            if user_input == "":
+                return []
+            # 入力されたインデックスが手札の範囲内にあるか確認し、すべてのインデックスが一意であることを確認
+            if all(0 <= index < len(field) for index in user_input) and len(user_input) == len(set(user_input)):
+                print(user_input)
+                user_input.sort()
+                # print(field)
+                self.sel_opn = user_input
+                self.sel_card = False
+                return self.sel_opn
+            else:
+                raise ValueError("選択されたインデックスが手札の範囲外です。")
     
     def dec_burst(self, bool):
         self.play_burst = bool
