@@ -1,6 +1,8 @@
 import random
+
 from env import cards
 from env import rule
+
 import logging
 import copy
 
@@ -20,6 +22,7 @@ class Player():
         self.hands = cards.Deck(rule.Hands_sequence)
         self.sel_opn = []
         self.sel_dbt = 0
+        self.is_dbt = False
         self.type = "Player"
         self.name = "Player"
         self.dict = cards.Deck(rule.Hands_sequence)
@@ -128,8 +131,8 @@ class Player():
 
     def opn_dbtcard(self, field: cards.Deck):
         for i in sorted(self.sel_opn, reverse=True):
+            print(f"pop: {i}")
             card = field.pop(i)
-            # print(f"pop: {i}")
             self.field.append(card)
         self.field.sort()
         print(self.field)
@@ -162,7 +165,8 @@ class CPUPlayer(Player):
         
         # 前回のカード枚数に合わせてカードを選択
         if card_count == 0:
-            self.sel_opn = list(range(random.randint(1, 4)))
+            self.sel_opn = list(range(random.randint(1, min(4, len(self.hands)))))
+        
         else:
             if card_count <= len(self.hands):
                 self.sel_opn = list(range(card_count))
@@ -202,8 +206,14 @@ class CPUPlayer(Player):
             num_cards_to_select = 1
         input_list = random.sample(range(len(field)), num_cards_to_select)
         input_list.sort()
+        
+        self.sel_opn = input_list
 
-        return input_list
+        return self.sel_opn
+
+    def dec_burst(self):
+        self.play_burst = True
+
 
 class MLPlayer(CPUPlayer):
     def __init__(self, model=None):
@@ -219,28 +229,40 @@ class MLPlayer(CPUPlayer):
         # flag ==> env
         # self.play = True
 
-        user_input = index # list[0, 1, 2 ,5]
-        if user_input == "":
+        if index == []:
             return []  # パスの場合
+        
+        # print(f"index1: {index}") # NOTE debug
         # 入力されたインデックスが手札の範囲内にあるか確認
-        if all(0 <= index < len(self.hands) for index in self.sel_opn):
+        if all(0 <= idx < len(self.hands) for idx in index):
             # self.play = False
+            self.sel_opn = index
             return self.sel_opn
         else:
             # raise ValueError("選択されたインデックスが手札の範囲外です。")
-            print("index is out of range.")
+            print("index1 is out of range.")
+
+    # def opn_card(self):
+    #     # TODO fix BUG
+    #     for i in self.sel_opn[::-1]:
+    #         self.field.open_card(self.hands, i)
+    #     self.field.sort()
+    #     print(f"opn_card{self.field}")
 
     
     def sel_card_back(self, index):
         # flag ==> env
         # self.reverse = True
-        
-        user_input = index # list[0, 1, 2 ,5]
-        if user_input == []:
+        # print(f"ind2{index}") # NOTE debug
+
+        if index == []:
             return []
+        
+        # print(f"field:{self.field}")
+        # print(f"index2: {index}") # NOTE debug
         # 入力されたインデックスが手札の範囲内にあるか確認
-        if all(0 <= index < len(self.field) for index in user_input):
-            for i in user_input[::1]:
+        if all(0 <= idx < len(self.field) for idx in index):
+            for i in index[::1]:
                 self.field[i].flip()
                 self.field.sort()
             print(f"play_cards:{self.field}")
@@ -248,61 +270,59 @@ class MLPlayer(CPUPlayer):
             return self.field
         else:
             # raise ValueError("選択されたインデックスが手札の範囲外です。")
-            print("index is out of range.")
+            print("index2 is out of range.")
 
 
     def dec_dbt(self, bool):
         self.is_dbt = bool
-    
+
+# TODO update
     def sel_dbtcard(self, field: cards.Deck, index):
+        print(f"index1: {index}")
         for i in range(len(field))[::-1]:
             field[i]._face_up()
         print(f"Field: {field}")
-        while True:
-            # flag ==> env
-            self.sel_card = True
+
+        if index == []:
+            return []  # パスの場合
+
+        # print(f"index1: {index}") # NOTE debug
+        # 入力されたインデックスが手札の範囲内にあるか確認
+        if all(0 <= idx < len(field)  for idx in index):
+            # self.play = False
+            self.sel_opn = index
+            return self.sel_opn
+        else:
+            # raise ValueError("選択されたインデックスが手札の範囲外です。")
+            print("index1 is out of range.")
 
 
-            user_input = index # list[0, 1, 2, 5]
-            if user_input == "":
-                return []
-            # 入力されたインデックスが手札の範囲内にあるか確認し、すべてのインデックスが一意であることを確認
-            if all(0 <= index < len(field) for index in user_input) and len(user_input) == len(set(user_input)):
-                print(user_input)
-                user_input.sort()
-                # print(field)
-                self.sel_opn = user_input
-                self.sel_card = False
-                return self.sel_opn
-            else:
-                raise ValueError("選択されたインデックスが手札の範囲外です。")
-    
     def dec_burst(self, bool):
-        self.play_burst = bool
+        self.play_burst = bool #True
 
 if __name__ == '__main__' :
-    a = Player()
-    b = CPUPlayer()
-    A = cards.Deck()
-    A.full()
-    B = copy.deepcopy(A)
-    print(B)
-    print(type(B)=="cards.Deck")
-    c = Player()
-    d = Player()
-    print(A[7])
-    print(f"print A[7] = {A[7].face_up}")
-    c.field.append(copy.copy(A[7]))
-    d.field.append(copy.copy(A[10]))
+    a = MLPlayer()
+    # b = CPUPlayer()
+    # A = cards.Deck()
+    # A.full()
+    # B = copy.deepcopy(A)
+    # print(B)
+    # print(type(B)=="cards.Deck")
+    # c = Player()
+    # d = Player()
+    # print(A[7])
+    # print(f"print A[7] = {A[7].face_up}")
+    # c.field.append(copy.copy(A[7]))
+    # d.field.append(copy.copy(A[10]))
     
     # __face_up = True
-    c.field[-1]._face_up()
-    d.field[-1]._face_up()
+    # c.field[-1]._face_up()
+    # d.field[-1]._face_up()
     
-    a.bool_f()
-    # a.is_atk = True
-    # a.is_turn = True
-    a.prt_card()
+    # a.bool_f()
+    # # a.is_atk = True
+    # # a.is_turn = True
+    # a.prt_card()
 
     # print("test")
     # b.dec_atk(False)
@@ -310,28 +330,28 @@ if __name__ == '__main__' :
     # b.prt_card()
     # a.full()
     # print(a)
-    """x = cards.Deck(rule.Milliondoubt)
+    x = cards.Deck(rule.Milliondoubt)
     x.full()
     x.shuffle()
     for i in range(7):
         a.hands.get_card(x)
-        b.hands.get_card(x)
+        # b.hands.get_card(x)
     print(x)
     a.hands.sort()
-    b.hands.sort()
+    # b.hands.sort()
     a.prt_card()
-    b.prt_card()
+    # b.prt_card()
 
     # a.sel_card()
     # a.opn_card()
     # a.sel_card_back()
-    b.sel_card(0)
-    b.sel_card_back()
-    print(b.field)
-    print(b.hands)"""
-    print(c.field, d.field)
-    print(c.dict[46].number == c.field[0].number)
-    print(c.dict[20].number)
-    print(c.dict[7].number, c.dict[20].number, c.dict[33].number, c.dict[46].number)
-    print(int(c.dict[46].number) == 8)
-    print(c.dict[20].number == c.dict[33].number)
+    # b.sel_card(0)
+    # b.sel_card_back()
+    # print(b.field)
+    # print(b.hands)
+    # print(c.field, d.field)
+    # print(c.dict[46].number == c.field[0].number)
+    # print(c.dict[20].number)
+    # print(c.dict[7].number, c.dict[20].number, c.dict[33].number, c.dict[46].number)
+    # print(int(c.dict[46].number) == 8)
+    # print(c.dict[20].number == c.dict[33].number)

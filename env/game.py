@@ -1,17 +1,22 @@
 from operator import index
 import random
 from turtle import Turtle, back
+
+from matplotlib.pyplot import stairs
+
 from env import cards
 from env import rule
 from env import role
+
 import logging
 import copy
 
 from itertools import product
 from collections import namedtuple
+from itertools import combinations
 
 class Game():
-    my_phase = ["play", "dec_doubt", "sel_dbtcard", "dec_burst", "None"]
+    # my_phase = ["play", "dec_doubt", "sel_dbtcard", "dec_burst", "None"]
     
     def __init__(self):
         # role.py
@@ -19,13 +24,19 @@ class Game():
         self.player1 = role.CPUPlayer()
         self.is_cards_played = False
         self.is_should_doubt = False
+        self.player0_doubt_flag = False
+        self.player1_doubt_flag = False
         self.is_turn_end = False
         self.round_start = True
         self.round = 1
         self.phase = 1
         self.turn = False
+        self.player0_dbtcard_right = False
+        self.player1_dbtcard_right = False
+        
         self.play = True
-        self.is_bluff = False
+        self.honest = False
+        
         self.deck = cards.Deck(rule.Milliondoubt)
         self.deck.full()
         self.dict = cards.Deck(rule.Milliondoubt)
@@ -41,6 +52,7 @@ class Game():
         self.is_stairs_flag = False
         self.is_eleven_back = False
         self.is_revolution = False
+        self.serching_legalmove = False
         self.before_suits = []
         self.restricted_suits = []
         self.skip = False
@@ -120,16 +132,24 @@ class Game():
                 self.before_suits.append(card.suit)
 
     def restriction_suits(self):
+        if self.before_suits is None or self.topcard_suits is None:
+            return  # 縛りを発生させない
         for suit in self.before_suits:
+            if suit is None:
+                continue  # このループの残りの部分をスキップして次の繰り返しに進む
             for suit1 in self.topcard_suits:
+                if suit1 is None:
+                    continue  # このループの残りの部分をスキップして次の繰り返しに進む
                 if suit1 == suit:
                     print(f"{suit}縛り")
                     self.restricted_suits.append(suit)
 
     def play_cards(self, player, index1=None, index2=None):
         if player.type == "Player":
+            # print("player_mode")
             return self.play_cards_player(player)
         elif player.type == "CPU":
+            # print("CPU_mode")
             return self.play_cards_CPU(player)
         elif player.type == "ML":
             return self.play_cards_ML(player, index1, index2)
@@ -150,8 +170,8 @@ class Game():
                 self.get_topcard(player.field)
                 self.topcard_number = self.get_topcard_number(player.field, True)
                 self.topcard_length = len(player.field)
-                self.is_bluff = self.is_bluff_cards(player.field, self.field)
-                # TODO kind flag and stairs flag
+                self.honest = self.is_bluff_cards(player.field, self.field)
+
                 for i in range(len(player.field)):
                     self.field.get_card(player.field)
                 logging.info(f'{"Hero" if self.turn else "Villain"} played cards: {player.field}')
@@ -171,6 +191,9 @@ class Game():
             return False
 
     def play_cards_CPU(self, player):
+        # TODO 合法手からランダムに選択する
+        
+        print(f"topcard_len: {self.topcard_length}") # NOTE debug
         selected_indexes = player.sel_card(self.topcard_length)
         
         # # フィールドにカードがない場合 selected_indexesを空のリストにできない
@@ -184,7 +207,7 @@ class Game():
                 self.get_topcard(player.field)
                 self.topcard_number = self.get_topcard_number(player.field, True)
                 self.topcard_length = len(player.field)
-                self.is_bluff = self.is_bluff_cards(player.field, self.field)
+                self.honest = self.is_bluff_cards(player.field, self.field)
                 for i in range(len(player.field)):
                     self.field.get_card(player.field)
                 logging.info(f'{"Hero" if self.turn else "Villain"} played cards: {player.field}')
@@ -201,14 +224,16 @@ class Game():
             logging.info(f'{"Hero" if self.turn else "Villain"} passed.')
             return False
 
-# TODO
+
     def play_cards_ML(self, player, index1, index2):
+        # print(f"ind2:{index2}")
+        selected_indexes = player.sel_card(index1)
         # フィールドにカードがない場合 selected_indexesを空のリストにできない
-        if not self.field and not index1:
+        if not self.field and not selected_indexes:
             print("自分のラウンドの初手はパスできません")
             return None
         
-        if index1:
+        if selected_indexes:
             self.my_phase = "play"
             player.opn_card()
             player.sel_card_back(index2)
@@ -216,13 +241,15 @@ class Game():
                 self.get_topcard(player.field)
                 self.topcard_number = self.get_topcard_number(player.field, True)
                 self.topcard_length = len(player.field)
-                self.is_bluff = self.is_bluff_cards(player.field, self.field)
+                self.honest = self.is_bluff_cards(player.field, self.field)
                 for i in range(len(player.field)):
                     self.field.get_card(player.field)
                 logging.info(f'{"Hero" if self.turn else "Villain"} played cards: {player.field}')
                 return True
             
             print("その手は出せません")
+            print(f"Field: {player.field}") # debug
+            
             player.return_cards()
             print(f"Field: {self.field}")
             print(f"Hands: {player.hands}")
@@ -269,104 +296,229 @@ class Game():
         encoded_hand += [1] * (14 - len(hand))
         return encoded_hand
     
-    def legalmove(self, player):
+    def searching_legal_move(self, player):
+        self.serching_legalmove = True
         legal_moves = []
-        legal_move = ""
-        joker_count = sum(1 for card in player.hands if card.is_joker)
+        legal_move = []
+        # joker_count = sum(1 for card in player.hands if card.is_joker)
         
         if self.field:
+            legal_moves.append([[], []])
             if self.topcard_length == 1:
-                if self.restriction_suits:
+                if self.restricted_suits:
                     # 一枚出し：self.topcard_numberを超えるかつself.restrictionと同スートのカード（裏含む）を出力
-                    for card in player.hands:
-                        if card.number > self.topcard_number and card.suit == self.restriction_suits:
-                            legal_moves.append([card])
-                            legal_move = [[card], [0]] # index1, index2
-                            legal_move.append(legal_move)
+                    for i, card in enumerate(player.hands):
+                        if card.is_joker or (card.number > self.topcard_number and card.suit == self.restricted_suits):
+                            legal_moves.append([[i], []])
+                            legal_move = [[i], [0]] # index1, index2
+                            legal_moves.append(legal_move)
                 else:
                     # 一枚出し：self.topcard_numberを超えるカード（裏含む）を出力
-                    for card in player.hands:
-                        if card.number > self.topcard_number:
-                            legal_moves.append([card])
-                            legal_move = [[card], [0]]
-                            legal_move.append(legal_move)
+                    for i, card in enumerate(player.hands):
+                        if card.is_joker or card.number > self.topcard_number:
+                            legal_moves.append([[i], []])
+                            legal_move = [[i], [0]]
+                            legal_moves.append(legal_move)
                         
-            elif self.topcard_length == 2:
-            # TODO restrict suit, topcard number
+            elif self.topcard_length == 2 and len(player.hands) >= 2:
+                # print(f"hand_len: {player.hands}")
                 for i in range(len(player.hands)):
                     for j in range(i+1, len(player.hands)):
-                        if self.is_pair([player.hands[i], player.hands[j]]):
-                            legal_moves.append([player.hands[i], player.hands[j]])
-                        player.hands[i].flip
-                        if self.is_pair([player.hands[i], player.hands[j]]):
-                            legal_moves.append([[player.hands[i], player.hands[j]], [0]])
-                        player.hands[i]._face_up
-                        player.hands[j].flip
-                        if self.is_pair([player.hands[i], player.hands[j]]):
-                            legal_moves.append([[player.hands[i], player.hands[j]], [1]])
-                        player.hands[j]._face_up
-                        legal_moves.append([[player.hands[i], player.hands[j]], [0, 1]])
+                        cards_pair = [player.hands[i], player.hands[j]]
                         
-            elif self.topcard_length >= 3:
-                # TODO Check
-                # multiple
-                if not self.is_stairs_flag:
-                    if self.topcard_length == 3 :
-                    elif self.topcard_length == 4:
-                    elif self.topcard_length == 5:
-                        if joker_count >= 1:
-                            if self.is_kind():
-                        else:
-                            False
+            # NOTE 最適化
+                        if self.is_pair(cards_pair):
+                            if self.restricted_suits:
+                                if not cards_pair[0].is_joker and cards_pair[0].number > self.topcard_number and self.check_suits_match(cards_pair):
+                                    legal_moves.append([cards_pair])
+                            else:
+                                if not cards_pair[0].is_joker and cards_pair[0].number > self.topcard_number:
+                                    legal_moves.append([cards_pair])
+                        
+                        cards_pair[0].flip
+                        if self.is_pair(cards_pair):
+                            if self.restricted_suits:
+                                if not cards_pair[1].is_joker and cards_pair[1].number > self.topcard_number and self.check_suits_match(cards_pair):
+                                    legal_moves.append([cards_pair, [0]])
+                            else:
+                                if not cards_pair[1].is_joker and cards_pair[1].number > self.topcard_number:
+                                    legal_moves.append([cards_pair, [0]])
                             
-                    elif self.topcard_length == 6:
-                        if joker_count == 2:
-                            if self.is_kind():
+                        cards_pair[0]._face_up
+                        cards_pair[1].flip
+                        if self.is_pair(cards_pair):
+                            if self.restricted_suits:
+                                if not cards_pair[0].is_joker and cards_pair[0].number > self.topcard_number and self.check_suits_match(cards_pair):
+                                    legal_moves.append([cards_pair, [1]])
+                            else:
+                                if not cards_pair[0].is_joker and cards_pair[0].number > self.topcard_number:
+                                    legal_moves.append([cards_pair, [1]])
+                                    
+                            
+                        cards_pair[1]._face_up
+                        legal_moves.append([[player.hands.index(player.hands[i]), player.hands.index(player.hands[j])], [0, 1]])
+                        
+            # NOTE 最適化
+            elif self.topcard_length >= 3 and len(player.hands) >= 3:
+                # kind
+                if not self.is_stairs_flag:
+                    for combo in combinations(player.hands, self.topcard_length):
+                        cards_combination = list(combo)
+                        if self.is_kind(cards_combination):
+                            if self.restricted_suits:
+                                if cards_combination[0].number > self.topcard_number and self.check_suits_match(cards_combination):
+                                    legal_move = self.find_indexes(player.hands, cards_combination)
+                                    legal_moves.append(legal_move)
+                            else:
+                                if cards_combination[0].number > self.topcard_number:
+                                    legal_move = self.find_indexes(player.hands, cards_combination)
+                                    legal_moves.append(legal_move)
+
+                        for face_ups in product([True, False], repeat=self.topcard_length):
+                            temp_cards = cards_combination.copy()
+                            for idx, card in enumerate(temp_cards):
+                                card.face_up = face_ups[idx]
+                            
+                            if self.is_kind(temp_cards):
+                                if self.restricted_suits:
+                                    if self.is_greater_than_topcard(temp_cards) and self.check_suits_match(cards_combination):
+                                        legal_move = self.find_indexes(player.hands, temp_cards)
+                                        legal_moves.append(legal_move)
+                                else:
+                                    if self.is_greater_than_topcard(temp_cards):
+                                        legal_move = self.find_indexes(player.hands, temp_cards)
+                                        legal_moves.append(legal_move)
 
                 # stairs
                 if not self.is_kind_flag:
+                    for combo in combinations(player.hands, self.topcard_length):
+                        cards_combination = list(combo)
+                        if self.is_stairs(cards_combination):
+                            if self.restricted_suits:
+                                if cards_combination[0].number > self.topcard_number and self.check_suits_match(cards_combination):
+                                    legal_move = self.find_indexes(player.hands, cards_combination)
+                                    legal_moves.append(legal_move)
+                            else:
+                                if cards_combination[0].number > self.topcard_number:
+                                    legal_move = self.find_indexes(player.hands, cards_combination)
+                                    legal_moves.append(legal_move)
+                            
 
-
+                        for face_ups in product([True, False], repeat=self.topcard_length):
+                            temp_cards = cards_combination.copy()
+                            for idx, card in enumerate(temp_cards):
+                                card.face_up = face_ups[idx]
+                            
+                            if self.is_stairs(temp_cards):
+                                if self.restricted_suits:
+                                    if self.is_greater_than_topcard(temp_cards) and self.check_suits_match(cards_combination):
+                                        legal_move = self.find_indexes(player.hands, temp_cards)
+                                        legal_moves.append(legal_move)
+                                else:
+                                    if self.is_greater_than_topcard(temp_cards):
+                                        legal_move = self.find_indexes(player.hands, temp_cards)
+                                        legal_moves.append(legal_move)
+                                    
+        # 手番のとき
         else:
             # 一枚出し：ハンドの全通り（裏含む）を出力
-            for card in player.hands:
-                legal_moves.append([card])
-                # TODO 裏出し
+            for i in range(len(player.hands)):
+                legal_moves.append([[i], []])
                 legal_move = [[i], [0]]
-                legal_move.append(legal_move)
+                legal_moves.append(legal_move)
             
             # 二枚出し：is_pairを満たす全通り（裏含む）を出力
-            # TODO back_card
-            for i in range(len(player.hands)):
-                for j in range(i+1, len(player.hands)):
-                    if self.is_pair([player.hands[i], player.hands[j]]):
-                        legal_moves.append([player.hands[i], player.hands[j]])
+            if len(player.hands) >= 2:
+                for i in range(len(player.hands)):
+                    for j in range(i+1, len(player.hands)):
+                        if self.is_pair([player.hands[i], player.hands[j], []]):
+                            legal_moves.append([[player.hands.index(player.hands[i]), player.hands.index(player.hands[j])]])
 
-                    legal_moves.append([[player.hands[i], player.hands[j]], [0]])
-                    legal_moves.append([[player.hands[i], player.hands[j]], [1]])
-                    legal_moves.append([[player.hands[i], player.hands[j]], [0, 1]])
+                        legal_moves.append([[player.hands.index(player.hands[i]), player.hands.index(player.hands[j])], [0]])
+                        legal_moves.append([[player.hands.index(player.hands[i]), player.hands.index(player.hands[j])], [1]])
+                        legal_moves.append([[player.hands.index(player.hands[i]), player.hands.index(player.hands[j])], [0, 1]])
             
-            # 複数枚出し（同ナンバー）：is_mutipleを満たす全通り（裏含む）を出力
-            # NOTE: 実際の実装では、3枚以上のすべての組み合わせを考慮する必要があります。
-            for i in range(len(player.hands)):
-                for j in range(i+1, len(player.hands)):
-                    for k in range(j+1, len(player.hands)):
-                        cards = [player.hands[i], player.hands[j], player.hands[k]]
-                        if self.is_kind(cards):
-                            legal_moves.append(cards)
+            # NOTE 最適化
+            if len(player.hands) >= 3:
+                max_cards_in_hand = len(player.hands)
+                # 複数枚出し（同ナンバー）：is_kindを満たす全通り（裏含む）を出力
+                for num_cards in range(3, min(7, max_cards_in_hand+1)):  # 3 to 6 cards
+                    for combo in combinations(player.hands, num_cards):
+                        cards_combination = list(combo)
+                        if self.is_kind(cards_combination):
+                            legal_move = self.find_indexes(player.hands, cards_combination)
+                            legal_moves.append(legal_move)
 
-            # 階段出し：is_stairsを満たす全通りを出力
-            # NOTE: 実際の実装では、階段の条件を満たすすべての組み合わせを考慮する必要があります。
-            # 4枚以上の連続する数字の合法手を追加
-            for i in range(len(player.hands) - 3):
-                for j in range(i+3, len(player.hands)):
-                    stairs = player.hands[i:j+1]
-                    if self.is_stairs(stairs):
-                        legal_moves.append(stairs)
+                        for face_ups in product([True, False], repeat=num_cards):
+                            temp_cards = cards_combination.copy()
+                            for idx, card in enumerate(temp_cards):
+                                card.face_up = face_ups[idx]
+                            
+                            if self.is_kind(temp_cards):
+                                legal_move = self.find_indexes(player.hands, temp_cards)
+                                legal_moves.append(legal_move)
+                                
+                # 階段出し：is_stairsを満たす全通りを出力
+                for num_cards in range(3, min(11, max_cards_in_hand+1)):
+                    for combo in combinations(player.hands, num_cards):
+                        cards_combination = list(combo)
+                        if self.is_stairs(cards_combination):
+                            legal_move = self.find_indexes(player.hands, cards_combination)
+                            legal_moves.append(legal_move)
 
-            return legal_moves
+                        for face_ups in product([True, False], repeat=num_cards):
+                            temp_cards = cards_combination.copy()
+                            for idx, card in enumerate(temp_cards):
+                                card.face_up = face_ups[idx]
+                            
+                            if self.is_stairs(temp_cards):
+                                legal_move = self.find_indexes(player.hands, temp_cards)
+                                legal_moves.append(legal_move)
 
 
+            self.serching_legalmove = False
+            for card in player.hands:
+                card.face_up = True
+                
+            if len(legal_moves) == 0:
+                print("list is empty.")
+
+        return legal_moves
+        
+    def is_greater_than_topcard(self, cards):
+        face_up_cards = [card for card in cards if card.face_up]
+
+        if not face_up_cards:  # すべてのカードが裏の場合
+            return True
+
+        return face_up_cards[0].number > self.topcard_number
+
+
+    def check_suits_match(self, cards):
+        face_up_suits = [card.suit for card in cards if card.face_up]
+        face_down_count = sum(1 for card in cards if not card.face_up)
+        suits_required = len(self.restricted_suits) - face_down_count
+        
+        # suits_requiredがマイナスの場合、Trueを返す
+        if suits_required <= 0:
+            return True
+        
+        matching_suits_count = sum(1 for suit in self.restricted_suits if suit in face_up_suits)
+    
+        return matching_suits_count >= suits_required
+
+    def find_indexes(self, hands, list):
+        index1 = []
+        index2 = []
+
+        for item in list:
+            if item in hands:
+                idx = hands.index(item)
+                index1.append(idx)
+                if not item.face_up:  # Assuming items in list2 have a `face_up` attribute
+                    index2.append(len(index1) - 1)
+
+        return [index1, index2]
 
 
 
@@ -457,8 +609,8 @@ class Game():
                 return False
             else:
                 count_same_number += 1
-                
-        if count_same_number >= 2:
+
+        if not self.serching_legalmove and count_same_number >= 2:
             self.is_kind_flag = True
 
         return True
@@ -497,7 +649,7 @@ class Game():
 
         # jokerを含まないface_up属性のカードが2枚以上ある場合のチェック
         face_up_non_joker_count = sum(1 for card in sorted_cards if card.face_up and not card.is_joker)
-        if face_up_non_joker_count >= 2:
+        if not self.serching_legalmove and face_up_non_joker_count >= 2:
             self.is_stairs_flag = True
 
         return True
@@ -529,7 +681,6 @@ class Game():
         self.is_stairs_flag = False
         self.is_restriction = False
         self.restricted_suits.clear()
-        self.before_suits.clear()
         self.round_start = True
         self.round += 1
 
@@ -538,12 +689,11 @@ class Game():
             self.is_eleven_back = False
             self.is_revolution = not self.is_revolution
 
-# TODO update
     def should_doubt(self, player, bool=None):
         self.my_phase = "dec_doubt"
         if not player.name == "MLPlayer":
             player.dec_dbt()
-        elif not bool:
+        elif bool is not None:
             player.dec_dbt(bool)
         else:
             print("NotImplemented_MLPlayer")
@@ -568,7 +718,7 @@ class Game():
         # ダウトが失敗したため、フィールドのカードをダウトを行ったプレイヤーの手札に加える
         logging.info(f'{doubter} falsely doubted {player}. Penalty applied.')
         print("ダウト失敗")
-        self.my_phase = "sel_card"
+        self.my_phase = "sel_dbtcard"
         player.sel_dbtcard(self.field, action)
         player.opn_dbtcard(self.field)
 
@@ -588,7 +738,7 @@ class Game():
         self.is_turn_end = True
         return False
     
-    def call_burst(self, bool=None):
+    def call_burst(self, bool=True):
         # プレイヤーの手札が11枚以上になった場合、バーストとみなす
         if len(self.player0.hands) >= 11:
             self.my_phase = "dec_burst"
@@ -685,19 +835,34 @@ class Game():
         if self.turn:
             print(f"{self.player1}の操作")
             self.is_should_doubt = self.should_doubt(self.player1, action)
+            if self.is_should_doubt:
+                self.player1_doubt_flag = True
         else:
             # print(f"Field: {self.field}")
             # self.debug_func()
             print(f"{self.player0}の操作")
             self.is_should_doubt = self.should_doubt(self.player0, action)
-        
+            if self.is_should_doubt:
+                self.player0_doubt_flag = True
+                
+        self.check_can_return_dbtcard()
+
         if self.is_should_doubt == None:
             return False
         
         self.my_phase = "sel_dbtcard"
-            
+
+# TODO gameloop,envに組み込む
+# ダウトカードの権利をチェックする関数
+    def check_can_return_dbtcard(self):
+        if (self.honest and self.player1_doubt_flag) or (not self.honest and self.player0_doubt_flag):
+            self.player0_dbtcard_right = True
+        elif (self.honest and self.player0_doubt_flag) or (not self.honest and self.player1_doubt_flag):
+            self.player1_dbtcard_right = True
+
+
     def phase_sel_dbtcard(self, action=None):
-        if not self.is_bluff:
+        if not self.honest:
             # !s 嘘がばれた場合
             # add kif "!s"
             if self.turn:
@@ -706,7 +871,7 @@ class Game():
             else:
                 print(f"相手札： {len(self.player1.hands)}枚")
                 self.handle_bluff_caught(self.player1, self.player0, action)
-            
+
         else:
             # !m 嘘じゃなかった場合
             # add kif "!m"
@@ -728,6 +893,8 @@ class Game():
 
     def end_phase(self):
         self.round_start = False
+        self.player0_dbtcard_right = False
+        self.player1_dbtcard_right = False
         # パスの処理
         if not self.is_cards_played:
             self.field_clear()
@@ -742,7 +909,7 @@ class Game():
         self.phase += 1
         self.switch_turn()
         self.skip = False
-        self.is_bluff = False
+        self.honest = False
         # print(f"before_suits: {self.before_suits}")
         self.before_suits.clear()
         self.before_suits = copy.deepcopy(self.topcard_suits)
@@ -777,7 +944,6 @@ class Game():
             if self.check_is_doubt(): # ないと表だしのときもスルーがでる
                 print("スルー\n")
             self.handle_no_doubt() # pass
-            self.is_turn_end = True
 
         # バースト判定
         if self.check_burst():

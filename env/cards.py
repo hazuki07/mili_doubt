@@ -92,28 +92,33 @@ class Number(Enum):
         return self is self.__class__._A
 
     def __gt__(self, other):
-        """Override it at a sub-class if needed"""
         if isinstance(other, self.__class__):
             return int(self) > int(other)
+        elif isinstance(other, int):
+            return int(self) > other
         raise NotImplementedError
 
     def __ge__(self, other):
-        """Override it at a sub-class if needed"""
         if isinstance(other, self.__class__):
             return int(self) >= int(other)
+        elif isinstance(other, int):
+            return int(self) >= other
         raise NotImplementedError
 
     def __lt__(self, other):
-        """Override it at a sub-class if needed"""
         if isinstance(other, self.__class__):
             return int(self) < int(other)
+        elif isinstance(other, int):
+            return int(self) < other
         raise NotImplementedError
 
     def __le__(self, other):
-        """Override it at a sub-class if needed"""
         if isinstance(other, self.__class__):
             return int(self) <= int(other)
+        elif isinstance(other, int):
+            return int(self) <= other
         raise NotImplementedError
+
 
 
 class JokerProperty(NamedTuple):
@@ -163,6 +168,10 @@ class Card:
     @property
     def face_up(self):
         return self.__face_up
+    
+    @face_up.setter
+    def face_up(self, value: bool):
+        self.__face_up = value
 
     def __str__(self):
         if self.__face_up:
@@ -196,10 +205,6 @@ class Card:
     @property
     def is_joker(self):
         return self.joker is not None
-
-    @property
-    def face_up(self):
-        return self.__face_up
 
     # --- properties coming from Number ---
     @property
@@ -259,6 +264,8 @@ class Deck(list):
 
     # raise card
     def open_card(self, cards: Iterable[Card], num: int):
+        # print(f"cards: {cards}") # NOTE debug
+        # print(f"num: {num}") # NOTE debug
         return self.append(cards.pop(num))
     
     def index(self, card):
