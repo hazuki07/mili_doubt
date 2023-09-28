@@ -3,8 +3,8 @@ import random
 import numpy as np
 # from cards import Card, Deck
 
-from env import cards
-from env import game
+import cards
+import game
 
 # actionの設計
 
@@ -80,7 +80,6 @@ class MillionDoubtEnv(gym.Env):
         if not done:
             return 0
         
-        # TODO fix
         # ゲームが終了した場合、報酬を計算
         player_hand_size = len(self.game.player0.hands)
         
@@ -107,12 +106,13 @@ class MillionDoubtEnv(gym.Env):
             return action
         
         elif obs['phase_type'] == 1:
+            # TODO カードクラスのリストが排出されることがある
             if self.game.turn:
                 # self.obs_dict['phase_type'] = 1
                 legal_moves = self.game.searching_legal_move(self.game.player0)
-                print(len(legal_moves)) # NOTE debug
+                # print(len(legal_moves)) # NOTE debug
                 rand_int = random.randint(0, len(legal_moves)-1)
-                print(len(legal_moves[rand_int])) #　NOTE debug
+                # print(f"legal_moves: {legal_moves}") #　NOTE debug
                 # print(legal_moves)
                 action['play_card'] = legal_moves[rand_int][0]
                 action['play_card_back'] = legal_moves[rand_int][1]
@@ -158,7 +158,6 @@ class MillionDoubtEnv(gym.Env):
         dbtcard = []
         burst = []
 
-    # TODO act =>
         # 'NoneType' object is not subscriptable
         # print("Action:", action)
         # if action is not None:
@@ -242,7 +241,6 @@ class MillionDoubtEnv(gym.Env):
 
     # dec_burst or 敗北のlog表記
         # Check if game is over
-    # TODO 報酬枚数の記憶
         done = self.game_over()
         if done: # This function needs to be defined.
             done = True
@@ -261,6 +259,7 @@ class MillionDoubtEnv(gym.Env):
             pass
         # 環境を初期状態にリセットします。
         else:
+            self.game.initialize_game()
             self.game.deal_cards()
             # print(self.game.player0.hands)
             self.game.decide_attacker()
@@ -318,7 +317,6 @@ class MillionDoubtEnv(gym.Env):
         # converted array
         return np.array(encoded_cards)
 
-# TODO Deck() to index
     def decode_cards(self, cards_state, option=True):
         cards = []
         converted_number = ""
@@ -370,11 +368,10 @@ class MillionDoubtEnv(gym.Env):
 
             return cards
         
-# TODO バイナリからindexに変換
     def decode_index(self, bin1, bin2=None):
         index1 = [i for i, value in enumerate(bin1) if value == 1]
 
-# TODO 選択されたカードのうちからindex
+# 選択されたカードのうちからindex
         if bin2 is not None:
             index2 = [i for i, value in enumerate(bin2) if value == 1]
             # self.decode_option = False
@@ -442,27 +439,29 @@ class MillionDoubtEnv(gym.Env):
 
         return self.obs_dict
 
-# # MLPlayer vs human, CPUPlayer
-env = MillionDoubtEnv()
-log_episode_reward = []
-log = []
-obs = env.reset()
+# # # MLPlayer vs human, CPUPlayer
+# env = MillionDoubtEnv()
+# log_episode_reward = []
+# log = []
+# obs = env.reset()
 
-# MLPlayer vs CPUPlayer
-while True:
-    # print(env.game.player0.hands)
-    obs = env.update_obs()
-    act = env.get_action(obs)
-    print(f"phase: {env.obs_dict['phase_type']}")
-    print(act)
-    next_obs, reward, done, info = env.step(act)
+# # MLPlayer vs CPUPlayer
+# for i in range(50):
+#     while True:
+#         # print(env.game.player0.hands)
+#         obs = env.update_obs()
+#         act = env.get_action(obs)
+#         print(f"phase: {env.obs_dict['phase_type']}")
+#         print(act)
+#         next_obs, reward, done, info = env.step(act)
 
-    log.append((obs, act, next_obs, reward, done))
-    log_episode_reward.append(reward)
+#         log.append((obs, act, next_obs, reward, done))
+#         log_episode_reward.append(reward)
 
-    if done:
-        break
+#         if done:
+#             # break
+#             env.reset()
 
-    obs = next_obs
+#     obs = next_obs
 
-episode_rewrd = sum(log_episode_reward)
+# episode_rewrd = sum(log_episode_reward)

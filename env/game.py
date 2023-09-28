@@ -4,9 +4,9 @@ from turtle import Turtle, back
 
 from matplotlib.pyplot import stairs
 
-from env import cards
-from env import rule
-from env import role
+import cards
+import rule
+import role
 
 import logging
 import copy
@@ -38,6 +38,7 @@ class Game():
         self.honest = False
         
         self.deck = cards.Deck(rule.Milliondoubt)
+        # TODO initialize deck
         self.deck.full()
         self.dict = cards.Deck(rule.Milliondoubt)
         self.dict.full()
@@ -58,6 +59,48 @@ class Game():
         self.skip = False
         self.winner = None
         self.my_phase = "None"
+        
+    # TODO
+    def initialize_game(self):
+        self.is_carelds_played = False
+        self.is_should_doubt = False
+        self.player0_doubt_flag = False
+        self.player1_doubt_flag = False
+        self.is_turn_end = False
+        self.round_start = True
+        self.round = 1
+        self.phase = 1
+        self.turn = False
+        self.player0_dbtcard_right = False
+        self.player1_dbtcard_right = False
+        
+        self.play = True
+        self.honest = False
+        
+        self.deck.clear()
+        self.player0.hands.clear()
+        self.player0.field.clear()
+        self.player1.hands.clear()
+        self.player1.field.clear()
+        self.field.clear()
+        self.topcard.clear()
+        self.before_suits.clear()
+        self.restricted_suits.clear()
+        self.graveyard.clear()
+        
+        self.topcard_length = 0
+        self.topcard_number = 0
+        self.topcard_suits = []
+        self.is_kind_flag = False
+        self.is_stairs_flag = False
+        self.is_eleven_back = False
+        self.is_revolution = False
+        self.serching_legalmove = False
+        self.skip = False
+        self.winner = None
+        self.my_phase = "None"
+        
+        self.deck.full()
         
     def deal_cards(self):
         self.deck.shuffle()
@@ -330,29 +373,29 @@ class Game():
                         if self.is_pair(cards_pair):
                             if self.restricted_suits:
                                 if not cards_pair[0].is_joker and cards_pair[0].number > self.topcard_number and self.check_suits_match(cards_pair):
-                                    legal_moves.append([cards_pair])
+                                    legal_moves.append([[player.hands.index(player.hands[i]), player.hands.index(player.hands[j])], []])
                             else:
                                 if not cards_pair[0].is_joker and cards_pair[0].number > self.topcard_number:
-                                    legal_moves.append([cards_pair])
+                                    legal_moves.append([[player.hands.index(player.hands[i]), player.hands.index(player.hands[j])], []])
                         
                         cards_pair[0].flip
                         if self.is_pair(cards_pair):
                             if self.restricted_suits:
                                 if not cards_pair[1].is_joker and cards_pair[1].number > self.topcard_number and self.check_suits_match(cards_pair):
-                                    legal_moves.append([cards_pair, [0]])
+                                    legal_moves.append([[player.hands.index(player.hands[i]), player.hands.index(player.hands[j])], [0]])
                             else:
                                 if not cards_pair[1].is_joker and cards_pair[1].number > self.topcard_number:
-                                    legal_moves.append([cards_pair, [0]])
+                                    legal_moves.append([[player.hands.index(player.hands[i]), player.hands.index(player.hands[j])], [0]])
                             
                         cards_pair[0]._face_up
                         cards_pair[1].flip
                         if self.is_pair(cards_pair):
                             if self.restricted_suits:
                                 if not cards_pair[0].is_joker and cards_pair[0].number > self.topcard_number and self.check_suits_match(cards_pair):
-                                    legal_moves.append([cards_pair, [1]])
+                                    legal_moves.append([[player.hands.index(player.hands[i]), player.hands.index(player.hands[j])], [1]])
                             else:
                                 if not cards_pair[0].is_joker and cards_pair[0].number > self.topcard_number:
-                                    legal_moves.append([cards_pair, [1]])
+                                    legal_moves.append([[player.hands.index(player.hands[i]), player.hands.index(player.hands[j])], [1]])
                                     
                             
                         cards_pair[1]._face_up
@@ -431,8 +474,8 @@ class Game():
             if len(player.hands) >= 2:
                 for i in range(len(player.hands)):
                     for j in range(i+1, len(player.hands)):
-                        if self.is_pair([player.hands[i], player.hands[j], []]):
-                            legal_moves.append([[player.hands.index(player.hands[i]), player.hands.index(player.hands[j])]])
+                        if self.is_pair([player.hands[i], player.hands[j]]):
+                            legal_moves.append([[player.hands.index(player.hands[i]), player.hands.index(player.hands[j])], []])
 
                         legal_moves.append([[player.hands.index(player.hands[i]), player.hands.index(player.hands[j])], [0]])
                         legal_moves.append([[player.hands.index(player.hands[i]), player.hands.index(player.hands[j])], [1]])
@@ -486,11 +529,12 @@ class Game():
         return legal_moves
         
     def is_greater_than_topcard(self, cards):
-        face_up_cards = [card for card in cards if card.face_up]
+        face_up_cards = [card for card in cards if card.face_up and not card.is_joker]
 
         if not face_up_cards:  # すべてのカードが裏の場合
             return True
 
+        # TODO is_jokerの場合
         return face_up_cards[0].number > self.topcard_number
 
 
@@ -852,7 +896,6 @@ class Game():
         
         self.my_phase = "sel_dbtcard"
 
-# TODO gameloop,envに組み込む
 # ダウトカードの権利をチェックする関数
     def check_can_return_dbtcard(self):
         if (self.honest and self.player1_doubt_flag) or (not self.honest and self.player0_doubt_flag):
@@ -920,6 +963,9 @@ class Game():
 
 
     def start_game(self):
+        # TODO initialize deck, hands, field
+        
+        
         self.deal_cards()
         self.decide_attacker()
         while self.play:

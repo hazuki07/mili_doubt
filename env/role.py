@@ -1,7 +1,7 @@
 import random
 
-from env import cards
-from env import rule
+import cards
+import rule
 
 import logging
 import copy
@@ -232,7 +232,7 @@ class MLPlayer(CPUPlayer):
         if index == []:
             return []  # パスの場合
         
-        # print(f"index1: {index}") # NOTE debug
+        print(f"index1: {index}") # NOTE debug
         # 入力されたインデックスが手札の範囲内にあるか確認
         if all(0 <= idx < len(self.hands) for idx in index):
             # self.play = False
