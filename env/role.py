@@ -1,7 +1,7 @@
 import random
 
-import cards
-import rule
+from env import cards
+from env import rule
 
 import logging
 import copy
@@ -131,7 +131,7 @@ class Player():
 
     def opn_dbtcard(self, field: cards.Deck):
         for i in sorted(self.sel_opn, reverse=True):
-            print(f"pop: {i}")
+            # print(f"pop: {i}") # NOTE debug
             card = field.pop(i)
             self.field.append(card)
         self.field.sort()
@@ -232,11 +232,12 @@ class MLPlayer(CPUPlayer):
         if index == []:
             return []  # パスの場合
         
-        print(f"index1: {index}") # NOTE debug
+        # print(f"index1: {index}") # NOTE debug
         # 入力されたインデックスが手札の範囲内にあるか確認
         if all(0 <= idx < len(self.hands) for idx in index):
             # self.play = False
             self.sel_opn = index
+            # print(f"play_idx: {self.sel_opn}") # NOTE debug
             return self.sel_opn
         else:
             # raise ValueError("選択されたインデックスが手札の範囲外です。")
@@ -265,7 +266,7 @@ class MLPlayer(CPUPlayer):
             for i in index[::1]:
                 self.field[i].flip()
                 self.field.sort()
-            print(f"play_cards:{self.field}")
+            # print(f"play_cards:{self.field}") # debug
             # self.reverse = False
             return self.field
         else:
@@ -278,10 +279,10 @@ class MLPlayer(CPUPlayer):
 
 # TODO update
     def sel_dbtcard(self, field: cards.Deck, index):
-        print(f"index1: {index}")
+        # print(f"dbt_idx1: {index}") # NOTE debug
         for i in range(len(field))[::-1]:
             field[i]._face_up()
-        print(f"Field: {field}")
+        # print(f"Field: {field}") # NOTE debug
 
         if index == []:
             return []  # パスの場合
@@ -291,6 +292,7 @@ class MLPlayer(CPUPlayer):
         if all(0 <= idx < len(field)  for idx in index):
             # self.play = False
             self.sel_opn = index
+            # print(f"dbtcard_idx: {self.sel_opn}") # NOTE debug
             return self.sel_opn
         else:
             # raise ValueError("選択されたインデックスが手札の範囲外です。")

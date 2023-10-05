@@ -4,9 +4,9 @@ from turtle import Turtle, back
 
 from matplotlib.pyplot import stairs
 
-import cards
-import rule
-import role
+from env import cards
+from env import rule
+from env import role
 
 import logging
 import copy
@@ -21,7 +21,7 @@ class Game():
     def __init__(self):
         # role.py
         self.player0 = role.MLPlayer()
-        self.player1 = role.CPUPlayer()
+        self.player1 = role.MLPlayer()
         self.is_cards_played = False
         self.is_should_doubt = False
         self.player0_doubt_flag = False
@@ -273,7 +273,7 @@ class Game():
         selected_indexes = player.sel_card(index1)
         # フィールドにカードがない場合 selected_indexesを空のリストにできない
         if not self.field and not selected_indexes:
-            print("自分のラウンドの初手はパスできません")
+            # print("自分のラウンドの初手はパスできません") # NOTE 初手パス
             return None
         
         if selected_indexes:
@@ -290,20 +290,20 @@ class Game():
                 logging.info(f'{"Hero" if self.turn else "Villain"} played cards: {player.field}')
                 return True
             
-            print("その手は出せません")
-            print(f"Field: {player.field}") # debug
+            # print("その手は出せません") # プレイ不可のハンド
+            # print(f"Field: {player.field}") # NOTE debug
             
             player.return_cards()
-            print(f"Field: {self.field}")
-            print(f"Hands: {player.hands}")
+            # print(f"Field: {self.field}") # NOTE print フィールド
+            # print(f"Hands: {player.hands}") # NOTE print ハンド
             return None
         else:
-            print("パス")
+            # print("パス") # NOTE パス
             self.topcard = []
             self.skip = True
             self.is_turn_end = True
             self.field_clear()
-            logging.info(f'{"Hero" if self.turn else "Villain"} passed.')
+            # logging.info(f'{"Hero" if self.turn else "Villain"} passed.')
             return False
 
 
@@ -748,12 +748,12 @@ class Game():
         logging.info(f'{bluffer} was caught bluffing by {doubter}. Penalty applied.')
         print("ダウト成功")
         # print(self.field)
-        # NOTE キャンセル処理
-        doubter.sel_dbtcard(self.field, action)
-        doubter.opn_dbtcard(self.field)
+        if doubter.sel_dbtcard(self.field, action) != []:
+            # NOTE 
+            doubter.opn_dbtcard(self.field)
 
-        for i in range(len(doubter.field)):
-            bluffer.hands.get_card(doubter.field)
+            for i in range(len(doubter.field)):
+                bluffer.hands.get_card(doubter.field)
         self.field_clear()
         # ブラフがバレたプレイヤーにペナルティを与える（必要であれば）
         # 例: bluffer.penalty += 1
@@ -763,11 +763,11 @@ class Game():
         logging.info(f'{doubter} falsely doubted {player}. Penalty applied.')
         print("ダウト失敗")
         self.my_phase = "sel_dbtcard"
-        player.sel_dbtcard(self.field, action)
-        player.opn_dbtcard(self.field)
+        if player.sel_dbtcard(self.field, action) != []:
+            player.opn_dbtcard(self.field)
 
-        for i in range(len(player.field)):
-            doubter.hands.get_card(player.field)
+            for i in range(len(player.field)):
+                doubter.hands.get_card(player.field)
         self.field_clear()
         self.switch_turn()
         # ダウトが失敗したプレイヤーにペナルティを与える（必要であれば）
@@ -821,10 +821,10 @@ class Game():
 
     def check_win(self):
         if len(self.player0.hands) == 0:
-            print("Hero wins!")
+            # print("Hero wins!") # NOTE
             return self.player0
         elif len(self.player1.hands) == 0:
-            print("Villain wins!")
+            # print("Villain wins!") # NOTE
             return self.player1
 
     def show_winner(self, player):
